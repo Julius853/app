@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SketchMaster</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    background:#f4f7fb;
+}
+header{
+    background:#58cc02;
+    color:white;
+    padding:15px;
+    text-align:center;
+    font-size:22px;
+    font-weight:bold;
+}
+#xpbar{
+    background:#ddd;
+    height:12px;
+    border-radius:10px;
+    margin:10px;
+    overflow:hidden;
+}
+#xpfill{
+    background:#58cc02;
+    height:100%;
+    width:0%;
+}
+.container{
+    padding:15px;
+}
+.lesson{
+    background:white;
+    padding:15px;
+    margin-bottom:10px;
+    border-radius:15px;
+    cursor:pointer;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+.lesson.locked{
+    opacity:0.4;
+}
+button{
+    background:#58cc02;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:10px;
+    font-size:16px;
+    margin-top:10px;
+}
+#screen{
+    display:none;
+}
+input[type=file]{
+    margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🎨 SketchMaster</header>
+
+<div id="xpbar"><div id="xpfill"></div></div>
+
+<div class="container" id="home"></div>
+
+<div class="container" id="screen"></div>
+
+<script>
+
+// ===== USER DATA =====
+let user = JSON.parse(localStorage.getItem("user")) || {
+    naam:"Gast",
+    xp:0,
+    level:1,
+    streak:0,
+    completed:[]
+};
+
+function saveUser(){
+    localStorage.setItem("user", JSON.stringify(user));
+}
+
+// ===== XP SYSTEM =====
+function addXP(x){
+    user.xp += x;
+    if(user.xp > user.level*100){
+        user.level++;
+        alert("Level omhoog! 🎉");
+    }
+    saveUser();
+    updateXP();
+}
+
+function updateXP(){
+    let perc = (user.xp % 100);
+    document.getElementById("xpfill").style.width = perc+"%";
+}
+updateXP();
+
+// ===== LESSON GENERATOR (2000+) =====
+const onderwerpen = ["Techniek","Anatomie","Architectuur","Landschap","Planten","Water","Portretten"];
+
+let lessen = [];
+
+for(let i=1;i<=2000;i++){
+    let type = (i % 2 == 0) ? "theorie" : "upload";
+    let onderwerp = onderwerpen[i % onderwerpen.length];
+
+    lessen.push({
+        id:i,
+        title: onderwerp+" Les "+i,
+        type:type,
+        uitleg:"In deze les leer je "+onderwerp+" tekenen op renaissance manier.",
+        opdracht:"Maak een schets volgens de instructies en focus op licht en schaduw.",
+        youtube:"https://www.youtube.com/results?search_query="+onderwerp+"+tekenen"
+    });
+}
+
+// ===== HOME SCREEN =====
+function renderHome(){
+    let home = document.getElementById("home");
+    home.innerHTML = "";
+
+    lessen.slice(0,50).forEach(les=>{
+        let locked = les.id > user.level*5;
+        let div = document.createElement("div");
+        div.className = "lesson "+(locked?"locked":"");
+        div.innerHTML = "<b>"+les.title+"</b><br>"+les.type;
+
+        if(!locked){
+            div.onclick = ()=>openLesson(les.id);
+        }
+
+        home.appendChild(div);
+    });
+}
+
+renderHome();
+
+// ===== OPEN LESSON =====
+function openLesson(id){
+    let les = lessen.find(l=>l.id==id);
+
+    document.getElementById("home").style.display="none";
+    let screen = document.getElementById("screen");
+    screen.style.display="block";
+
+    if(les.type=="theorie"){
+        screen.innerHTML = `
+        <h2>${les.title}</h2>
+        <p>${les.uitleg}</p>
+        <p><b>Vraag:</b> Wat is belangrijk bij renaissance schaduw?</p>
+        <button onclick="correct(${id})">Lichtbron</button>
+        <button onclick="fout()">Kleur</button>
+        <button onclick="fout()">Random lijnen</button>
+        `;
+    }else{
+        screen.innerHTML = `
+        <h2>${les.title}</h2>
+        <p>${les.uitleg}</p>
+        <p>${les.opdracht}</p>
+        <input type="file" id="file">
+        <br>
+        <button onclick="uploadCheck(${id})">Controleer tekening</button>
+        `;
+    }
+}
+
+// ===== THEORIE RESULT =====
+function correct(id){
+    alert("Goed gedaan! +10 XP");
+    addXP(10);
+    user.completed.push(id);
+    saveUser();
+    back();
+}
+
+function fout(){
+    alert("Niet correct, probeer opnieuw.");
+}
+
+// ===== UPLOAD CHECK =====
+function uploadCheck(id){
+    let score = Math.floor(Math.random()*40)+60;
+    let feedbacks = [
+        "Goede verhoudingen, werk aan schaduw.",
+        "Lijnen zijn sterk, maar let op perspectief.",
+        "Mooie start, voeg meer diepte toe."
+    ];
+    let feedback = feedbacks[Math.floor(Math.random()*feedbacks.length)];
+
+    alert("Score: "+score+"/100\nFeedback: "+feedback+"\n+15 XP");
+
+    addXP(15);
+    user.completed.push(id);
+    saveUser();
+    back();
+}
+
+// ===== NAVIGATIE =====
+function back(){
+    document.getElementById("screen").style.display="none";
+    document.getElementById("home").style.display="block";
+    renderHome();
+}
+
+</script>
+
+</body>
+</html>
